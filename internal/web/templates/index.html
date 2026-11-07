@@ -1,0 +1,58 @@
+{{define "content"}}
+<div>
+  <h1>Kho lưu trữ Git</h1>
+  <p class="muted">Tạo repo mới rồi clone/push qua HTTP. Repo nằm trong <code>{{.Root}}</code>, metadata trong <code>{{.Meta}}</code>.</p>
+</div>
+
+{{if .Error}}<div class="notice error" role="alert">{{.Error}}</div>{{end}}
+
+<div class="card">
+  <h2 style="margin-top:0">Tạo repo mới</h2>
+  <form class="create" method="post" action="/new">
+    <input type="text" name="name" value="{{.Name}}" placeholder="tên-repo" aria-label="Tên repo" maxlength="64" required autofocus>
+    <input type="text" name="description" placeholder="mô tả ngắn (không bắt buộc)" aria-label="Mô tả repo" maxlength="500">
+    <button type="submit">Tạo repo</button>
+  </form>
+  <p class="muted" style="margin:8px 0 0;font-size:13px">Chỉ dùng chữ, số, dấu chấm, gạch ngang, gạch dưới. Tối đa 64 ký tự.</p>
+</div>
+
+{{if .Repos}}
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Repo</th>
+        <th class="hide-sm">Nhánh</th>
+        <th class="hide-sm">Commit gần nhất</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Repos}}
+      <tr>
+        <td>
+          <a class="repo-name" href="/repo/{{.Name}}">{{.Name}}</a>
+          {{if .Empty}}<span class="pill">trống</span>{{end}}
+          {{if .Description}}<div class="muted" style="font-size:13px">{{.Description}}</div>{{end}}
+        </td>
+        <td class="hide-sm">{{if .Branch}}{{.Branch}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="hide-sm">
+          {{if .HasCommit}}
+            <div>{{.Subject}}</div>
+            <div class="muted" style="font-size:13px">{{.Author}} · {{.When}}</div>
+          {{else}}
+            <span class="muted">chưa có commit</span>
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="card">
+  <p style="margin:0"><strong>Chưa có repo nào.</strong></p>
+  <p class="muted" style="margin:6px 0 0">Tạo repo đầu tiên ở form phía trên, sau đó:</p>
+  <pre class="snippet"><code>git clone {{.BaseURL}}/&lt;tên-repo&gt;.git</code></pre>
+</div>
+{{end}}
+{{end}}

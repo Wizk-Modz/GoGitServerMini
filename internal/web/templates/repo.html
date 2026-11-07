@@ -1,0 +1,78 @@
+{{define "content"}}
+<div>
+  <p style="margin:0 0 4px"><a href="/">← Tất cả repo</a></p>
+  <h1>{{.Name}} <span class="pill">git</span></h1>
+  {{if .Description}}<p style="margin:0 0 4px">{{.Description}}</p>{{end}}
+  <p class="muted" style="margin:0">Nhánh mặc định: <strong>{{.DefaultBranch}}</strong></p>
+</div>
+
+{{if .Error}}<div class="notice error" role="alert">{{.Error}}</div>{{end}}
+
+<div class="card">
+  <h2 style="margin-top:0">Clone</h2>
+  <pre class="snippet"><code>git clone {{.CloneURL}}</code></pre>
+  {{if .Empty}}
+  <div class="notice info" style="margin-top:12px">
+    Repo này còn trống. Đẩy commit đầu tiên từ thư mục dự án của bạn:
+  </div>
+  <pre class="snippet"><code>cd /đường/dẫn/dự-án
+git init
+git add .
+git commit -m "commit đầu tiên"
+git remote add origin {{.CloneURL}}
+git push -u origin {{.DefaultBranch}}</code></pre>
+  {{end}}
+</div>
+
+{{if .Branches}}
+<div class="card">
+  <h2 style="margin-top:0">Nhánh</h2>
+  <ul class="chips">
+    {{range .Branches}}<li><code>{{.}}</code></li>{{end}}
+  </ul>
+</div>
+{{end}}
+
+{{if .Tags}}
+<div class="card">
+  <h2 style="margin-top:0">Tag</h2>
+  <ul class="chips">
+    {{range .Tags}}<li><code>{{.}}</code></li>{{end}}
+  </ul>
+</div>
+{{end}}
+
+<div class="card">
+  <h2 style="margin-top:0">Commit gần đây</h2>
+  {{if .Commits}}
+  <ul class="commit-list">
+    {{range .Commits}}
+    <li>
+      <div class="commit-subject">{{.Subject}}</div>
+      <div class="commit-meta">
+        <span class="hash">{{.Hash}}</span> · {{.Author}} · {{.When}}
+      </div>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="muted" style="margin:0">Chưa có commit nào.</p>
+  {{end}}
+</div>
+
+<details class="danger-zone" style="margin-top:20px">
+  <summary style="color:var(--muted)">Sửa mô tả{{if .UpdatedAt}} · cập nhật {{.UpdatedAt}}{{end}}</summary>
+  <form method="post" action="/repo/{{.Name}}/edit" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px">
+    <input type="text" name="description" value="{{.Description}}" placeholder="mô tả ngắn" aria-label="Mô tả repo" maxlength="500">
+    <button type="submit">Lưu mô tả</button>
+  </form>
+  {{if .CreatedAt}}<p class="muted" style="font-size:13px;margin:8px 0 0">Tạo lúc {{.CreatedAt}}</p>{{end}}
+</details>
+
+<details class="danger-zone">
+  <summary>Xoá repo này</summary>
+  <form method="post" action="/repo/{{.Name}}/delete" onsubmit="return confirm('Xoá vĩnh viễn repo {{.Name}}?');">
+    <button type="submit" class="danger">Xoá {{.Name}}</button>
+  </form>
+</details>
+{{end}}
