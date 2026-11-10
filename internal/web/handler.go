@@ -2,13 +2,11 @@
 package web
 
 import (
-	"bytes"
 	"errors"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"gogitservermini/internal/gitbackend"
 	"gogitservermini/internal/metastore"
@@ -32,53 +30,6 @@ type Handler struct {
 	indexTmpl    *template.Template
 	repoTmpl     *template.Template
 	notFoundTmpl *template.Template
-}
-
-// repoRow là một dòng trong bảng danh sách repo.
-type repoRow struct {
-	Name        string
-	Description string
-	Branch      string
-	Subject     string
-	Author      string
-	When        string
-	Empty       bool
-	HasCommit   bool
-}
-
-// indexData là dữ liệu cho trang chủ.
-type indexData struct {
-	Title   string
-	Root    string
-	Meta    string
-	BaseURL string
-	Error   string
-	Name    string
-	Repos   []repoRow
-}
-
-// commitRow là một commit đã định dạng để hiển thị.
-type commitRow struct {
-	Hash    string
-	Author  string
-	Subject string
-	When    string
-}
-
-// repoData là dữ liệu cho trang chi tiết repo.
-type repoData struct {
-	Title         string
-	Name          string
-	Description   string
-	CreatedAt     string
-	UpdatedAt     string
-	CloneURL      string
-	DefaultBranch string
-	Error         string
-	Empty         bool
-	Branches      []string
-	Tags          []string
-	Commits       []commitRow
 }
 
 // New dựng Handler hoàn chỉnh với các route đã đăng ký.
@@ -155,14 +106,22 @@ func (h *Handler) renderIndex(w http.ResponseWriter, r *http.Request, status int
 		rows = append(rows, row)
 	}
 
+	activeRepos := 0
+	for _, row := range rows {
+		if row.HasCommit {
+			activeRepos++
+		}
+	}
 	data := indexData{
-		Title:   "Kho lưu trữ",
-		Root:    h.store.Root,
-		Meta:    h.meta.Path(),
-		BaseURL: baseURL(r),
-		Error:   errMsg,
-		Name:    name,
-		Repos:   rows,
+		Title:       "Kho lưu trữ",
+		Root:        h.store.Root,
+		Meta:        h.meta.Path(),
+		BaseURL:     baseURL(r),
+		Error:       errMsg,
+		Name:        name,
+		Repos:       rows,
+		TotalRepos:  len(rows),
+		ActiveRepos: activeRepos,
 	}
 	h.renderPage(w, h.indexTmpl, data, status)
 }
@@ -321,43 +280,4 @@ func (h *Handler) handleFallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.renderNotFound(w, http.StatusNotFound, "Đường dẫn không tồn tại.")
-}
-
-// renderPage ghi một trang HTML hoàn chỉnh với status cho trước.
-func (h *Handler) renderPage(w http.ResponseWriter, tmpl *template.Template, data any, status int) {
-	var buf bytes.Buffer
-	if err := render(&buf, tmpl, data); err != nil {
-		h.logger.Error("không render được trang", "err", err)
-		http.Error(w, "lỗi máy chủ", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
-	_, _ = w.Write(buf.Bytes())
-}
-
-// renderNotFound hiển thị trang 404/500 dạng HTML.
-func (h *Handler) renderNotFound(w http.ResponseWriter, status int, message string) {
-	data := struct {
-		Title   string
-		Message string
-	}{Title: "Không tìm thấy", Message: message}
-	h.renderPage(w, h.notFoundTmpl, data, status)
-}
-
-// baseURL dựng URL gốc của server từ request hiện tại.
-func baseURL(r *http.Request) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	return scheme + "://" + r.Host
-}
-
-// formatTime định dạng thời gian commit theo giờ máy chủ.
-func formatTime(t time.Time) string {
-	if t.IsZero() {
-		return "—"
-	}
-	return t.Local().Format("2006-01-02 15:04")
 }

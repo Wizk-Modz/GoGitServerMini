@@ -1,6 +1,6 @@
 # GoGitServerMini
 
-Git server tự host tối giản viết bằng Go: phục vụ `git clone/push/pull` qua **Smart HTTP**, có giao diện web để tạo, xem, sửa mô tả và xoá repo. Metadata repo lưu trong một file JSON.
+Git server tự host tối giản viết bằng Go: phục vụ `git clone/push/pull` qua **Smart HTTP**, có giao diện web để tạo, xem, sửa mô tả và xoá repo. Giao diện hỗ trợ sáng/tối theo hệ điều hành và có nút chuyển thủ công. Metadata repo lưu trong một file JSON.
 
 ## Yêu cầu
 

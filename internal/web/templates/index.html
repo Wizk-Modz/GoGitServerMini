@@ -1,57 +1,80 @@
 {{define "content"}}
-<div>
-  <h1>Kho lưu trữ Git</h1>
-  <p class="muted">Tạo repo mới rồi clone/push qua HTTP. Repo nằm trong <code>{{.Root}}</code>, metadata trong <code>{{.Meta}}</code>.</p>
-</div>
+<section class="hero">
+  <div>
+    <p class="hero-eyebrow">Git server tự host</p>
+    <h1>Kho lưu trữ Git</h1>
+    <p class="hero-copy">
+      Tạo repo mới rồi clone/push qua HTTP. Repo nằm trong <code>{{.Root}}</code>,
+      metadata trong <code>{{.Meta}}</code>.
+    </p>
+  </div>
+  <div class="stats" aria-label="Thống kê repo">
+    <div class="stat">
+      <span class="stat-value">{{.TotalRepos}}</span>
+      <span class="stat-label">repo</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value">{{.ActiveRepos}}</span>
+      <span class="stat-label">có commit</span>
+    </div>
+  </div>
+</section>
 
-{{if .Error}}<div class="notice error" role="alert">{{.Error}}</div>{{end}}
+{{if .Error}}<div class="alert alert-error" role="alert">{{.Error}}</div>{{end}}
 
-<div class="card">
-  <h2 style="margin-top:0">Tạo repo mới</h2>
-  <form class="create" method="post" action="/new">
-    <input type="text" name="name" value="{{.Name}}" placeholder="tên-repo" aria-label="Tên repo" maxlength="64" required autofocus>
-    <input type="text" name="description" placeholder="mô tả ngắn (không bắt buộc)" aria-label="Mô tả repo" maxlength="500">
-    <button type="submit">Tạo repo</button>
+<section class="panel panel-spaced">
+  <div class="panel-head">
+    <h2>Tạo repo mới</h2>
+    <p class="panel-sub">Đặt tên ngắn gọn, mô tả có thể bổ sung sau.</p>
+  </div>
+  <form class="create-form" method="post" action="/new">
+    <label class="field">
+      <span class="field-label">Tên repo</span>
+      <input type="text" name="name" value="{{.Name}}" placeholder="tên-repo" aria-label="Tên repo" maxlength="64" required autofocus>
+    </label>
+    <label class="field">
+      <span class="field-label">Mô tả <span class="optional">(không bắt buộc)</span></span>
+      <input type="text" name="description" placeholder="mô tả ngắn" aria-label="Mô tả repo" maxlength="500">
+    </label>
+    <button class="btn btn-primary" type="submit">Tạo repo</button>
+    <p class="field-hint">Chỉ dùng chữ, số, dấu chấm, gạch ngang, gạch dưới. Tối đa 64 ký tự.</p>
   </form>
-  <p class="muted" style="margin:8px 0 0;font-size:13px">Chỉ dùng chữ, số, dấu chấm, gạch ngang, gạch dưới. Tối đa 64 ký tự.</p>
+</section>
+
+<div class="section-head">
+  <h2>Repo <span class="count-badge">{{.TotalRepos}}</span></h2>
+  <p>Sắp xếp theo tên</p>
 </div>
 
 {{if .Repos}}
-<div class="card">
-  <table>
-    <thead>
-      <tr>
-        <th>Repo</th>
-        <th class="hide-sm">Nhánh</th>
-        <th class="hide-sm">Commit gần nhất</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Repos}}
-      <tr>
-        <td>
-          <a class="repo-name" href="/repo/{{.Name}}">{{.Name}}</a>
-          {{if .Empty}}<span class="pill">trống</span>{{end}}
-          {{if .Description}}<div class="muted" style="font-size:13px">{{.Description}}</div>{{end}}
-        </td>
-        <td class="hide-sm">{{if .Branch}}{{.Branch}}{{else}}<span class="muted">—</span>{{end}}</td>
-        <td class="hide-sm">
-          {{if .HasCommit}}
-            <div>{{.Subject}}</div>
-            <div class="muted" style="font-size:13px">{{.Author}} · {{.When}}</div>
-          {{else}}
-            <span class="muted">chưa có commit</span>
-          {{end}}
-        </td>
-      </tr>
+<div class="repo-grid">
+  {{range .Repos}}
+  <article class="repo-card">
+    <div class="repo-card-main">
+      <h3 class="repo-card-title">
+        <a href="/repo/{{.Name}}">{{.Name}}</a>
+        {{if .Empty}}<span class="pill">trống</span>{{else}}<span class="pill pill-soft">đang hoạt động</span>{{end}}
+      </h3>
+      {{if .Description}}<p class="repo-card-desc">{{.Description}}</p>{{end}}
+      <p class="repo-card-meta">
+        {{if .Branch}}<span>Nhánh mặc định <code>{{.Branch}}</code></span>{{else}}<span class="muted">Chưa có nhánh</span>{{end}}
+      </p>
+    </div>
+    <div class="repo-card-commit">
+      {{if .HasCommit}}
+        <p class="commit-subject">{{.Subject}}</p>
+        <p class="commit-meta">{{.Author}}<span class="dot">·</span>{{.When}}</p>
+      {{else}}
+        <p class="commit-meta">chưa có commit</p>
       {{end}}
-    </tbody>
-  </table>
+    </div>
+  </article>
+  {{end}}
 </div>
 {{else}}
-<div class="card">
-  <p style="margin:0"><strong>Chưa có repo nào.</strong></p>
-  <p class="muted" style="margin:6px 0 0">Tạo repo đầu tiên ở form phía trên, sau đó:</p>
+<div class="panel empty-state">
+  <h2>Chưa có repo nào.</h2>
+  <p>Tạo repo đầu tiên ở form phía trên, sau đó:</p>
   <pre class="snippet"><code>git clone {{.BaseURL}}/&lt;tên-repo&gt;.git</code></pre>
 </div>
 {{end}}

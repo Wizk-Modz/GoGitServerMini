@@ -232,6 +232,43 @@ func TestGitEndpointRouted(t *testing.T) {
 	}
 }
 
+func TestIndexShowsStats(t *testing.T) {
+	h, store, _ := newHandler(t)
+	for _, name := range []string{"active", "empty"} {
+		if err := store.Create(name); err != nil {
+			t.Fatalf("Create(%s): %v", name, err)
+		}
+	}
+	path, err := store.Path("active")
+	if err != nil {
+		t.Fatalf("Path: %v", err)
+	}
+	pushCommit(t, path)
+
+	rec := do(t, h.Routes(), httptest.NewRequest(http.MethodGet, "/", nil))
+	body := rec.Body.String()
+	for _, want := range []string{`<span class="stat-value">2</span>`, `<span class="stat-value">1</span>`, `đang hoạt động`, `trống`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("trang chủ thiếu %q", want)
+		}
+	}
+}
+
+func TestErrorPageShowsStatus(t *testing.T) {
+	h, _, _ := newHandler(t)
+	rec := do(t, h.Routes(), httptest.NewRequest(http.MethodGet, "/khong/ton/tai", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `<p class="error-code">404</p>`) {
+		t.Error("trang lỗi thiếu mã 404")
+	}
+	if !strings.Contains(body, "Không tìm thấy trang") {
+		t.Error("trang lỗi thiếu tiêu đề")
+	}
+}
+
 func TestUnknownPathIsHTML404(t *testing.T) {
 	h, _, _ := newHandler(t)
 	rec := do(t, h.Routes(), httptest.NewRequest(http.MethodGet, "/khong/ton/tai", nil))
@@ -366,17 +403,27 @@ func TestDeleteRemovesMetadata(t *testing.T) {
 	}
 }
 
-func TestRepoNameEscaped(t *testing.T) {
-	h, store, _ := newHandler(t)
+func TestRepoDescriptionEscaped(t *testing.T) {
+	h, store, meta := newHandler(t)
 	if err := store.Create("demo"); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	rec := do(t, h.Routes(), httptest.NewRequest(http.MethodGet, "/repo/demo", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d", rec.Code)
+	payload := `<script>alert("xss")</script>`
+	if err := meta.Set("demo", payload); err != nil {
+		t.Fatalf("Set: %v", err)
 	}
-	if strings.Contains(rec.Body.String(), "<script>") {
-		t.Error("có thẻ script chưa escape")
+	for _, route := range []string{"/", "/repo/demo"} {
+		rec := do(t, h.Routes(), httptest.NewRequest(http.MethodGet, route, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status = %d", route, rec.Code)
+		}
+		body := rec.Body.String()
+		if strings.Contains(body, payload) {
+			t.Errorf("%s chứa mô tả chưa escape", route)
+		}
+		if !strings.Contains(body, "&lt;script&gt;") {
+			t.Errorf("%s thiếu mô tả đã escape", route)
+		}
 	}
 }
 

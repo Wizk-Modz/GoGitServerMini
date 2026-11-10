@@ -1,7 +1,8 @@
 {{define "content"}}
-<div>
-  <h1>Không tìm thấy trang</h1>
-  <p class="muted">{{.Message}}</p>
-  <p><a href="/">← Về trang chủ</a></p>
-</div>
+<section class="error-page">
+  <p class="error-code">{{.Code}}</p>
+  <h1>{{.Heading}}</h1>
+  <p>{{.Message}}</p>
+  <a class="btn btn-primary" href="/">Về trang chủ</a>
+</section>
 {{end}}
