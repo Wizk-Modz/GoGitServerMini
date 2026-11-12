@@ -6,15 +6,15 @@ import (
 	"strings"
 )
 
-// renderInline chuyển định dạng nội tuyến sang HTML.
-func renderInline(text string) string {
+// inline chuyển định dạng nội tuyến sang HTML.
+func (r *renderer) inline(text string) string {
 	var out strings.Builder
-	renderInlineInto(&out, text)
+	r.inlineInto(&out, text)
 	return out.String()
 }
 
 // renderInlineInto quét chuỗi và ghi HTML đã escape ra out.
-func renderInlineInto(out *strings.Builder, text string) {
+func (r *renderer) inlineInto(out *strings.Builder, text string) {
 	for i := 0; i < len(text); {
 		switch text[i] {
 		case '\\':
@@ -35,7 +35,7 @@ func renderInlineInto(out *strings.Builder, text string) {
 			i++
 		case '!':
 			if i+1 < len(text) && text[i+1] == '[' {
-				if rendered, next, ok := parseImage(text, i); ok {
+				if rendered, next, ok := r.parseImage(text, i); ok {
 					out.WriteString(rendered)
 					i = next
 					continue
@@ -44,7 +44,7 @@ func renderInlineInto(out *strings.Builder, text string) {
 			out.WriteByte('!')
 			i++
 		case '[':
-			if rendered, next, ok := parseLink(text, i); ok {
+			if rendered, next, ok := r.parseLink(text, i); ok {
 				out.WriteString(rendered)
 				i = next
 				continue
@@ -60,7 +60,7 @@ func renderInlineInto(out *strings.Builder, text string) {
 			out.WriteString("&lt;")
 			i++
 		case '*', '_', '~':
-			if rendered, next, ok := parseEmphasis(text, i); ok {
+			if rendered, next, ok := r.parseEmphasis(text, i); ok {
 				out.WriteString(rendered)
 				i = next
 				continue
@@ -118,7 +118,7 @@ func parseCodeSpan(text string, start int) (string, int, bool) {
 }
 
 // parseLink đọc liên kết dạng [chữ](url "tiêu đề").
-func parseLink(text string, start int) (string, int, bool) {
+func (r *renderer) parseLink(text string, start int) (string, int, bool) {
 	label, afterLabel, ok := readBracket(text, start)
 	if !ok {
 		return "", start, false
@@ -126,6 +126,11 @@ func parseLink(text string, start int) (string, int, bool) {
 	dest, title, next, ok := readDestination(text, afterLabel)
 	if !ok {
 		return "", start, false
+	}
+	if r.opts.Link != nil {
+		if mapped := r.opts.Link(dest); mapped != "" {
+			dest = mapped
+		}
 	}
 	safe, ok := safeURL(dest)
 	if !ok {
@@ -141,13 +146,13 @@ func parseLink(text string, start int) (string, int, bool) {
 		out.WriteString(`"`)
 	}
 	out.WriteString(">")
-	out.WriteString(renderInline(label))
+	out.WriteString(r.inline(label))
 	out.WriteString("</a>")
 	return out.String(), next, true
 }
 
 // parseImage đọc ảnh dạng ![mô tả](url).
-func parseImage(text string, start int) (string, int, bool) {
+func (r *renderer) parseImage(text string, start int) (string, int, bool) {
 	label, afterLabel, ok := readBracket(text, start+1)
 	if !ok {
 		return "", start, false
@@ -155,6 +160,11 @@ func parseImage(text string, start int) (string, int, bool) {
 	dest, title, next, ok := readDestination(text, afterLabel)
 	if !ok {
 		return "", start, false
+	}
+	if r.opts.Image != nil {
+		if mapped := r.opts.Image(dest); mapped != "" {
+			dest = mapped
+		}
 	}
 	safe, ok := safeURL(dest)
 	if !ok {
@@ -289,7 +299,7 @@ func parseAutolink(text string, start int) (string, int, bool) {
 }
 
 // parseEmphasis đọc đậm, nghiêng và gạch ngang.
-func parseEmphasis(text string, start int) (string, int, bool) {
+func (r *renderer) parseEmphasis(text string, start int) (string, int, bool) {
 	marker := text[start]
 	run := 1
 	for start+run < len(text) && text[start+run] == marker {
@@ -328,7 +338,7 @@ func parseEmphasis(text string, start int) (string, int, bool) {
 		if strings.TrimSpace(content) == "" || strings.HasPrefix(content, " ") || strings.HasSuffix(content, " ") {
 			continue
 		}
-		rendered := renderInline(content)
+		rendered := r.inline(content)
 		return "<" + tag + ">" + rendered + "</" + tag + ">", i + use, true
 	}
 	return "", start, false

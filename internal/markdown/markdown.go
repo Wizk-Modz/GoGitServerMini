@@ -21,17 +21,36 @@ var taskPattern = regexp.MustCompile(`^\[([ xX])\]\s+(.*)$`)
 // tableDividerPattern nhận diện dòng phân cách của bảng.
 var tableDividerPattern = regexp.MustCompile(`^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$`)
 
-// Render chuyển toàn bộ Markdown trong src thành HTML đã escape.
+// Options cho phép tầng gọi điều chỉnh URL tương đối trong nội dung.
+type Options struct {
+	// Link nhận URL gốc của liên kết và trả URL thay thế, rỗng để giữ nguyên.
+	Link func(dest string) string
+	// Image nhận URL gốc của ảnh và trả URL thay thế, rỗng để giữ nguyên.
+	Image func(dest string) string
+}
+
+// renderer giữ tuỳ chọn khi duyệt Markdown.
+type renderer struct {
+	opts Options
+}
+
+// Render chuyển Markdown trong src thành HTML đã escape.
 func Render(src []byte) string {
+	return RenderWith(src, Options{})
+}
+
+// RenderWith chuyển Markdown trong src thành HTML với tuỳ chọn URL.
+func RenderWith(src []byte, opts Options) string {
 	text := strings.ReplaceAll(string(src), "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
 	var out strings.Builder
-	renderBlocks(&out, strings.Split(text, "\n"), false)
+	r := &renderer{opts: opts}
+	r.renderBlocks(&out, strings.Split(text, "\n"), false)
 	return out.String()
 }
 
 // renderBlocks duyệt các dòng và sinh HTML theo từng khối.
-func renderBlocks(out *strings.Builder, lines []string, tight bool) {
+func (r *renderer) renderBlocks(out *strings.Builder, lines []string, tight bool) {
 	for i := 0; i < len(lines); {
 		line := lines[i]
 		if strings.TrimSpace(line) == "" {
@@ -40,11 +59,11 @@ func renderBlocks(out *strings.Builder, lines []string, tight bool) {
 		}
 
 		if fence, lang, ok := parseFence(line); ok {
-			i = renderCodeFence(out, lines, i, fence, lang)
+			i = r.renderCodeFence(out, lines, i, fence, lang)
 			continue
 		}
 		if level, content, ok := parseHeading(line); ok {
-			renderHeading(out, level, content)
+			r.renderHeading(out, level, content)
 			i++
 			continue
 		}
@@ -54,27 +73,27 @@ func renderBlocks(out *strings.Builder, lines []string, tight bool) {
 			continue
 		}
 		if strings.HasPrefix(strings.TrimLeft(line, " "), ">") {
-			i = renderBlockquote(out, lines, i)
+			i = r.renderBlockquote(out, lines, i)
 			continue
 		}
 		if indent, ordered, _, _, ok := parseListItem(line); ok {
-			i = renderList(out, lines, i, indent, ordered)
+			i = r.renderList(out, lines, i, indent, ordered)
 			continue
 		}
 		if i+1 < len(lines) && isTableHeader(line, lines[i+1]) {
-			i = renderTable(out, lines, i)
+			i = r.renderTable(out, lines, i)
 			continue
 		}
 		if level, ok := setextLevel(line, lines, i); ok {
-			renderHeading(out, level, strings.TrimSpace(line))
+			r.renderHeading(out, level, strings.TrimSpace(line))
 			i += 2
 			continue
 		}
 		if strings.HasPrefix(line, "    ") || strings.HasPrefix(line, "\t") {
-			i = renderIndentedCode(out, lines, i)
+			i = r.renderIndentedCode(out, lines, i)
 			continue
 		}
-		i = renderParagraph(out, lines, i, tight)
+		i = r.renderParagraph(out, lines, i, tight)
 	}
 }
 
@@ -103,7 +122,7 @@ func parseFence(line string) (string, string, bool) {
 }
 
 // renderCodeFence gom nội dung tới dòng đóng và trả vị trí kế tiếp.
-func renderCodeFence(out *strings.Builder, lines []string, start int, fence, lang string) int {
+func (r *renderer) renderCodeFence(out *strings.Builder, lines []string, start int, fence, lang string) int {
 	body := make([]string, 0, 8)
 	i := start + 1
 	for ; i < len(lines); i++ {
@@ -147,7 +166,7 @@ func parseHeading(line string) (int, string, bool) {
 }
 
 // renderHeading ghi tiêu đề kèm id neo ổn định.
-func renderHeading(out *strings.Builder, level int, content string) {
+func (r *renderer) renderHeading(out *strings.Builder, level int, content string) {
 	slug := Slug(content)
 	out.WriteString("<h")
 	out.WriteString(strconv.Itoa(level))
@@ -157,7 +176,7 @@ func renderHeading(out *strings.Builder, level int, content string) {
 		out.WriteString(`"`)
 	}
 	out.WriteString(">")
-	out.WriteString(renderInline(content))
+	out.WriteString(r.inline(content))
 	out.WriteString("</h")
 	out.WriteString(strconv.Itoa(level))
 	out.WriteString(">\n")
@@ -225,7 +244,7 @@ func setextLevel(line string, lines []string, i int) (int, bool) {
 }
 
 // renderBlockquote gom các dòng trích dẫn rồi render đệ quy.
-func renderBlockquote(out *strings.Builder, lines []string, start int) int {
+func (r *renderer) renderBlockquote(out *strings.Builder, lines []string, start int) int {
 	body := make([]string, 0, 4)
 	i := start
 	for ; i < len(lines); i++ {
@@ -242,7 +261,7 @@ func renderBlockquote(out *strings.Builder, lines []string, start int) int {
 		body = append(body, content)
 	}
 	out.WriteString("<blockquote>\n")
-	renderBlocks(out, body, false)
+	r.renderBlocks(out, body, false)
 	out.WriteString("</blockquote>\n")
 	return i
 }
@@ -265,7 +284,7 @@ func parseListItem(line string) (indent int, ordered bool, start int, content st
 }
 
 // renderList dựng danh sách lồng nhau theo mức thụt lề.
-func renderList(out *strings.Builder, lines []string, start, baseIndent int, ordered bool) int {
+func (r *renderer) renderList(out *strings.Builder, lines []string, start, baseIndent int, ordered bool) int {
 	tag := "ul"
 	if ordered {
 		tag = "ol"
@@ -320,7 +339,7 @@ func renderList(out *strings.Builder, lines []string, start, baseIndent int, ord
 			itemLines[0] = label
 		}
 		var inner strings.Builder
-		renderBlocks(&inner, itemLines, true)
+		r.renderBlocks(&inner, itemLines, true)
 		out.WriteString(stripParagraph(inner.String()))
 		out.WriteString("</li>\n")
 	}
@@ -380,7 +399,7 @@ func splitRow(line string) []string {
 }
 
 // renderTable dựng bảng có header và căn lề theo dòng phân cách.
-func renderTable(out *strings.Builder, lines []string, start int) int {
+func (r *renderer) renderTable(out *strings.Builder, lines []string, start int) int {
 	header := splitRow(lines[start])
 	divider := splitRow(lines[start+1])
 	aligns := make([]string, len(divider))
@@ -402,7 +421,7 @@ func renderTable(out *strings.Builder, lines []string, start int) int {
 			out.WriteString(` style="text-align:` + aligns[i] + `"`)
 		}
 		out.WriteString(">")
-		out.WriteString(renderInline(content))
+		out.WriteString(r.inline(content))
 		out.WriteString("</" + tag + ">")
 	}
 
@@ -427,7 +446,7 @@ func renderTable(out *strings.Builder, lines []string, start int) int {
 }
 
 // renderIndentedCode gom khối code thụt lề 4 dấu cách.
-func renderIndentedCode(out *strings.Builder, lines []string, start int) int {
+func (r *renderer) renderIndentedCode(out *strings.Builder, lines []string, start int) int {
 	body := make([]string, 0, 4)
 	i := start
 	for ; i < len(lines); i++ {
@@ -448,7 +467,7 @@ func renderIndentedCode(out *strings.Builder, lines []string, start int) int {
 }
 
 // renderParagraph gom dòng liên tiếp thành một đoạn văn.
-func renderParagraph(out *strings.Builder, lines []string, start int, tight bool) int {
+func (r *renderer) renderParagraph(out *strings.Builder, lines []string, start int, tight bool) int {
 	body := make([]string, 0, 4)
 	i := start
 	for ; i < len(lines); i++ {
@@ -461,7 +480,7 @@ func renderParagraph(out *strings.Builder, lines []string, start int, tight bool
 		}
 		body = append(body, strings.TrimSpace(line))
 	}
-	rendered := renderInline(strings.Join(body, "\n"))
+	rendered := r.inline(strings.Join(body, "\n"))
 	if tight && len(body) == 1 && !strings.Contains(rendered, "<br>") {
 		out.WriteString(rendered)
 		out.WriteString("\n")

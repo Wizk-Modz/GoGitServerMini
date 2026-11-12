@@ -170,3 +170,38 @@ func TestCRLF(t *testing.T) {
 		t.Errorf("CRLF xử lý sai:\n%s", out)
 	}
 }
+
+func TestRenderWithLinkImageHooks(t *testing.T) {
+	opts := Options{
+		Link: func(dest string) string {
+			if strings.HasPrefix(dest, "#") || strings.Contains(dest, "://") {
+				return ""
+			}
+			return "/repo/demo/blob/" + strings.TrimPrefix(dest, "./")
+		},
+		Image: func(dest string) string {
+			if strings.Contains(dest, "://") {
+				return ""
+			}
+			return "/repo/demo/raw/" + strings.TrimPrefix(dest, "./")
+		},
+	}
+	out := RenderWith([]byte("[tài liệu](docs/a.md) [ngoài](https://example.com) ![ảnh](img/a.png)\n"), opts)
+	for _, want := range []string{
+		`<a href="/repo/demo/blob/docs/a.md">tài liệu</a>`,
+		`<a href="https://example.com">ngoài</a>`,
+		`<img src="/repo/demo/raw/img/a.png" alt="ảnh">`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("thiếu %q trong:\n%s", want, out)
+		}
+	}
+}
+
+func TestRenderWithHookCannotInjectUnsafeURL(t *testing.T) {
+	opts := Options{Link: func(string) string { return "javascript:alert(1)" }}
+	out := RenderWith([]byte("[x](a.md)\n"), opts)
+	if strings.Contains(out, "javascript:") || strings.Contains(out, "<a ") {
+		t.Errorf("hook trả URL nguy hiểm nhưng vẫn render:\n%s", out)
+	}
+}
