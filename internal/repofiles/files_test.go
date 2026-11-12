@@ -1,7 +1,9 @@
 package repofiles
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -196,6 +198,45 @@ func TestType(t *testing.T) {
 	}
 	if _, err := Type(repo, "main", "khong-co"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("Type(khong-co) = %v, muốn ErrNotFound", err)
+	}
+}
+
+func TestReaderStreamsLargeFile(t *testing.T) {
+	repo := makeRepo(t)
+	work := filepath.Join(filepath.Dir(repo), "work")
+	big := bytes.Repeat([]byte("a"), MaxBlobBytes+1)
+	writeFile(t, filepath.Join(work, "big.txt"), string(big))
+	run(t, work, "git", "add", ".")
+	run(t, work, "git", "commit", "-m", "tệp lớn")
+	run(t, work, "git", "push", "origin", "main")
+
+	stream, err := Reader(repo, "main", "big.txt")
+	if err != nil {
+		t.Fatalf("Reader: %v", err)
+	}
+	defer stream.Close()
+	data, err := io.ReadAll(stream)
+	if err != nil {
+		t.Fatalf("đọc luồng: %v", err)
+	}
+	if len(data) != len(big) {
+		t.Errorf("len = %d, muốn %d", len(data), len(big))
+	}
+}
+
+func TestReaderRejectsInvalidPath(t *testing.T) {
+	repo := makeRepo(t)
+	for _, path := range []string{"", "/etc/passwd", "../x", "docs/"} {
+		if _, err := Reader(repo, "main", path); !errors.Is(err, ErrInvalidPath) {
+			t.Errorf("Reader(%q) = %v, muốn ErrInvalidPath", path, err)
+		}
+	}
+}
+
+func TestReaderMissingFile(t *testing.T) {
+	repo := makeRepo(t)
+	if _, err := Reader(repo, "main", "khong-co.txt"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("Reader = %v, muốn ErrNotFound", err)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -98,6 +99,63 @@ func Read(repoPath, ref, filePath string) (Blob, error) {
 		head = head[:8000]
 	}
 	return Blob{Data: data, Size: size, Binary: bytes.IndexByte(head, 0) >= 0}, nil
+}
+
+// Reader trả luồng nội dung thô của tệp, dùng cho tải xuống nên không giới hạn kích thước.
+func Reader(repoPath, ref, filePath string) (io.ReadCloser, error) {
+	cleanFile, err := cleanPath(filePath)
+	if err != nil {
+		return nil, err
+	}
+	if cleanFile == "" {
+		return nil, ErrInvalidPath
+	}
+	commit, err := resolveRef(repoPath, ref)
+	if err != nil {
+		return nil, err
+	}
+	treeish := commit + ":" + cleanFile
+	// git cat-file báo lỗi thiếu tệp ở stderr khi kết thúc, nên xác nhận trước khi stream.
+	if _, err := runGit(repoPath, "cat-file", "-s", treeish); err != nil {
+		return nil, ErrNotFound
+	}
+
+	cmd := exec.Command("git", "--git-dir", repoPath, "cat-file", "blob", treeish)
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("không mở được luồng git: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("không chạy được git cat-file: %w", err)
+	}
+	return &stream{pipe: stdout, cmd: cmd, stderr: &stderr}, nil
+}
+
+// stream bọc pipe stdout của git và thu hồi tiến trình khi đóng.
+type stream struct {
+	pipe   io.ReadCloser
+	cmd    *exec.Cmd
+	stderr *strings.Builder
+}
+
+// Read chuyển tiếp dữ liệu từ pipe của git.
+func (s *stream) Read(p []byte) (int, error) {
+	return s.pipe.Read(p)
+}
+
+// Close đóng pipe rồi chờ git kết thúc để không bỏ lại tiến trình.
+func (s *stream) Close() error {
+	err := s.pipe.Close()
+	waitErr := s.cmd.Wait()
+	if err != nil {
+		return err
+	}
+	if waitErr != nil && s.stderr.Len() > 0 {
+		return fmt.Errorf("git cat-file: %w: %s", waitErr, strings.TrimSpace(s.stderr.String()))
+	}
+	return nil
 }
 
 // Type trả loại đối tượng tại target: "blob" hoặc "tree".
