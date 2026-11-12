@@ -1,0 +1,66 @@
+{{define "content"}}
+<nav class="breadcrumb" aria-label="Đường dẫn">
+  <a href="/">← Tất cả repo</a>
+  <span class="dot">/</span>
+  {{range $i, $item := .Breadcrumbs}}
+    {{if $i}}<span class="dot">/</span>{{end}}
+    {{if $item.URL}}<a href="{{$item.URL}}">{{$item.Label}}</a>{{else}}<span>{{$item.Label}}</span>{{end}}
+  {{end}}
+</nav>
+
+<header class="repo-header">
+  <div>
+    <h1 class="blob-title">{{.Path}}</h1>
+    <p class="repo-header-meta">
+      <span>{{.Size}}</span>
+      <span class="dot">·</span><span>Nhánh <strong>{{.Ref}}</strong></span>
+    </p>
+  </div>
+  <div class="blob-actions">
+    <a class="btn btn-ghost btn-sm" href="{{.RawURL}}">Xem thô</a>
+    <a class="btn btn-ghost btn-sm" href="{{.BlobURL}}">Liên kết</a>
+  </div>
+</header>
+
+{{if .ImageURL}}
+<section class="panel image-panel">
+  <img class="blob-image" src="{{.ImageURL}}" alt="{{.Path}}">
+  <p class="muted image-note">{{.Size}} · {{.ImageType}}</p>
+</section>
+{{else if .TooLarge}}
+<section class="panel empty-state">
+  <h2>Tệp quá lớn</h2>
+  <p>Tệp lớn hơn giới hạn hiển thị (1 MB). Bạn vẫn có thể xem nội dung thô.</p>
+  <p class="notice-action"><a class="btn btn-primary" href="{{.RawURL}}">Mở nội dung thô</a></p>
+</section>
+{{else if .Binary}}
+<section class="panel empty-state">
+  <h2>Tệp nhị phân</h2>
+  <p>Không thể hiển thị trực tiếp tệp nhị phân ({{.Size}}).</p>
+  <p class="notice-action"><a class="btn btn-primary" href="{{.RawURL}}">Tải tệp</a></p>
+</section>
+{{else if .IsMarkdown}}
+<article class="panel markdown-body">
+  {{.HTML}}
+</article>
+{{else}}
+<section class="panel code-panel">
+  <div class="panel-head code-head">
+    <div class="panel-title-row">
+      <h2>{{.Path}}</h2>
+      <span class="count-badge">{{len .Lines}}</span>
+    </div>
+    {{if .Truncated}}<span class="pill">đã rút gọn</span>{{end}}
+  </div>
+  <div class="code-scroll">
+    <table class="code-table">
+      <tbody>
+        {{range .Lines}}
+        <tr><td class="code-ln"></td><td class="code-src">{{.Text}}</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}
+{{end}}

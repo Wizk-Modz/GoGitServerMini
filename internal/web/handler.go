@@ -29,6 +29,8 @@ type Handler struct {
 
 	indexTmpl    *template.Template
 	repoTmpl     *template.Template
+	treeTmpl     *template.Template
+	blobTmpl     *template.Template
 	notFoundTmpl *template.Template
 }
 
@@ -45,6 +47,14 @@ func New(store *repostore.Store, meta *metastore.Store, maxBody int64, logger *s
 	if err != nil {
 		return nil, err
 	}
+	treeTmpl, err := newPageTemplate("tree.html")
+	if err != nil {
+		return nil, err
+	}
+	blobTmpl, err := newPageTemplate("blob.html")
+	if err != nil {
+		return nil, err
+	}
 	notFoundTmpl, err := newPageTemplate("notfound.html")
 	if err != nil {
 		return nil, err
@@ -56,6 +66,8 @@ func New(store *repostore.Store, meta *metastore.Store, maxBody int64, logger *s
 		logger:       logger,
 		indexTmpl:    indexTmpl,
 		repoTmpl:     repoTmpl,
+		treeTmpl:     treeTmpl,
+		blobTmpl:     blobTmpl,
 		notFoundTmpl: notFoundTmpl,
 	}, nil
 }
@@ -66,6 +78,9 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /{$}", h.handleIndex)
 	mux.HandleFunc("POST /new", h.handleCreate)
 	mux.HandleFunc("GET /repo/{name}", h.handleRepo)
+	mux.HandleFunc("GET /repo/{name}/tree/{path...}", h.handleTree)
+	mux.HandleFunc("GET /repo/{name}/blob/{path...}", h.handleBlob)
+	mux.HandleFunc("GET /repo/{name}/raw/{path...}", h.handleRaw)
 	mux.HandleFunc("POST /repo/{name}/edit", h.handleEdit)
 	mux.HandleFunc("POST /repo/{name}/delete", h.handleDelete)
 	mux.HandleFunc("/", h.handleFallback)
@@ -223,6 +238,7 @@ func (h *Handler) renderRepo(w http.ResponseWriter, r *http.Request, name string
 		data.CreatedAt = formatTime(repo.CreatedAt)
 		data.UpdatedAt = formatTime(repo.UpdatedAt)
 	}
+	h.fillRepoFiles(&data, path, info.DefaultBranch)
 	if info.Err != nil {
 		h.logger.Warn("không đọc được thông tin repo", "name", name, "err", info.Err)
 		data.Error = "Không đọc được đầy đủ thông tin repo."

@@ -1,0 +1,54 @@
+{{define "content"}}
+<nav class="breadcrumb" aria-label="Đường dẫn">
+  <a href="/">← Tất cả repo</a>
+  <span class="dot">/</span>
+  {{range $i, $item := .Breadcrumbs}}
+    {{if $i}}<span class="dot">/</span>{{end}}
+    {{if $item.URL}}<a href="{{$item.URL}}">{{$item.Label}}</a>{{else}}<span>{{$item.Label}}</span>{{end}}
+  {{end}}
+</nav>
+
+<header class="repo-header">
+  <div>
+    <h1>{{.Name}} <span class="pill pill-soft">git</span></h1>
+    <p class="repo-header-meta">
+      <span>Nhánh <strong>{{.Ref}}</strong></span>
+      {{if .Path}}<span class="dot">·</span><span>Thư mục <code>{{.Path}}</code></span>{{end}}
+    </p>
+  </div>
+  <a class="btn btn-ghost btn-sm" href="/repo/{{.Name}}">Tổng quan</a>
+</header>
+
+<div class="detail-grid">
+  <div>
+    <section class="panel">
+      <div class="panel-head file-panel-head">
+        <div>
+          <h2>Mã nguồn</h2>
+          <p class="panel-sub">{{if .Path}}<code>{{.Path}}/</code>{{else}}Thư mục gốc{{end}}</p>
+        </div>
+        {{if .ParentURL}}<a class="btn btn-ghost btn-sm" href="{{.ParentURL}}">↑ Thư mục cha</a>{{end}}
+      </div>
+      {{if .Entries}}
+      <ul class="file-list">
+        {{range .Entries}}
+        <li class="file-row">
+          <span class="file-icon {{if .IsDir}}dir{{else}}blob{{end}}" aria-hidden="true">
+            {{if .IsDir}}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            {{else}}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+            {{end}}
+          </span>
+          <a class="file-name" href="{{.URL}}">{{.Name}}{{if .IsDir}}/{{end}}</a>
+          <span class="file-size">{{if not .IsDir}}{{.Size}}{{end}}</span>
+        </li>
+        {{end}}
+      </ul>
+      {{else}}
+      <p class="muted empty-note">Thư mục này trống.</p>
+      {{end}}
+    </section>
+  </div>
+</div>
+{{end}}

@@ -41,6 +41,46 @@ git push -u origin {{.DefaultBranch}}</code></pre>
       {{end}}
     </section>
 
+    {{if .ReadmeHTML}}
+    <section class="panel repo-readme">
+      <div class="repo-readme-head">
+        <h2><span class="file-icon blob" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span>{{.ReadmeName}}</h2>
+        <a class="btn btn-ghost btn-sm" href="{{.ReadmeURL}}">Xem tệp</a>
+      </div>
+      <div class="markdown-body">{{.ReadmeHTML}}</div>
+    </section>
+    {{end}}
+
+    {{if .HasTree}}
+    <section class="panel repo-file-preview">
+      <div class="panel-title-row">
+        <h2>Mã nguồn</h2>
+        <span class="count-badge">{{len .Files}}</span>
+        <a class="btn btn-ghost btn-sm push-right" href="{{.FileURL}}">Duyệt toàn bộ</a>
+      </div>
+      {{if .Files}}
+      <ul class="file-list">
+        {{range .Files}}
+        <li class="file-row">
+          <span class="file-icon {{if .IsDir}}dir{{else}}blob{{end}}" aria-hidden="true">
+            {{if .IsDir}}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            {{else}}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+            {{end}}
+          </span>
+          <a class="file-name" href="{{.URL}}">{{.Name}}{{if .IsDir}}/{{end}}</a>
+          <span class="file-size">{{if not .IsDir}}{{.Size}}{{end}}</span>
+        </li>
+        {{end}}
+      </ul>
+      {{if .FilesTruncated}}<p class="file-empty">Còn tệp khác — <a href="{{.FileURL}}">xem tất cả</a>.</p>{{end}}
+      {{else}}
+      <p class="file-empty">Chưa có tệp nào.</p>
+      {{end}}
+    </section>
+    {{end}}
+
     <section class="panel">
       <div class="panel-head">
         <h2>Commit gần đây</h2>

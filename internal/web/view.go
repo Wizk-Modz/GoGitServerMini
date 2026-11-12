@@ -43,18 +43,25 @@ type commitRow struct {
 
 // repoData là dữ liệu cho trang chi tiết repo.
 type repoData struct {
-	Title         string
-	Name          string
-	Description   string
-	CreatedAt     string
-	UpdatedAt     string
-	CloneURL      string
-	DefaultBranch string
-	Error         string
-	Empty         bool
-	Branches      []string
-	Tags          []string
-	Commits       []commitRow
+	Title          string
+	Name           string
+	Description    string
+	CreatedAt      string
+	UpdatedAt      string
+	CloneURL       string
+	DefaultBranch  string
+	Error          string
+	Empty          bool
+	Branches       []string
+	Tags           []string
+	Commits        []commitRow
+	FileURL        string
+	ReadmeURL      string
+	ReadmeHTML     template.HTML
+	ReadmeName     string
+	Files          []treeEntryRow
+	FilesTruncated bool
+	HasTree        bool
 }
 
 // renderPage ghi một trang HTML hoàn chỉnh với status cho trước.

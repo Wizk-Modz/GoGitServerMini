@@ -1,0 +1,72 @@
+/* Trình duyệt tệp và khung xem mã nguồn. */
+.file-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.file-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.file-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+.file-row:last-child { border-bottom: none; }
+.file-row:hover { background: var(--bg-soft); }
+.file-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; border-radius: 6px; color: var(--text-muted); background: var(--bg-soft); }
+.file-icon svg { width: 15px; height: 15px; }
+.file-icon.dir { color: var(--accent); background: var(--accent-soft); }
+.file-name { flex: 1; min-width: 0; color: var(--text); font-size: 14px; overflow-wrap: anywhere; }
+.file-name:hover { color: var(--accent); text-decoration: none; }
+.file-size { flex: 0 0 auto; color: var(--text-faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.blob-title { font-family: var(--font-mono); font-size: clamp(17px, 2.4vw, 22px); overflow-wrap: anywhere; }
+.blob-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.code-panel { padding: 0; overflow: hidden; }
+.code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.code-head h2 { font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; }
+.code-scroll { overflow: auto; max-height: 72vh; background: var(--code-bg); }
+.code-table { width: 100%; border-collapse: collapse; counter-reset: line; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; }
+.code-table td { border: 0; padding: 0 12px; vertical-align: top; }
+.code-ln { width: 1%; color: #6b7688; text-align: right; user-select: none; white-space: nowrap; }
+.code-ln::before { counter-increment: line; content: counter(line); }
+.code-src { color: var(--code-text); white-space: pre; }
+.code-table tr:hover .code-src { background: rgba(255, 255, 255, 0.04); }
+
+/* Nội dung Markdown. */
+.markdown-body { font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+.markdown-body > :first-child { margin-top: 0; }
+.markdown-body > :last-child { margin-bottom: 0; }
+.markdown-body h1, .markdown-body h2 { padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.markdown-body h1 { margin: 0 0 16px; font-size: 26px; }
+.markdown-body h2 { margin: 28px 0 12px; font-size: 21px; }
+.markdown-body h3 { margin: 24px 0 10px; font-size: 17px; }
+.markdown-body h4, .markdown-body h5, .markdown-body h6 { margin: 20px 0 8px; font-size: 15px; }
+.markdown-body p { margin: 0 0 14px; }
+.markdown-body a { text-decoration: underline; text-underline-offset: 2px; }
+.markdown-body code { padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-soft); font-size: 0.88em; }
+.markdown-body pre { margin: 0 0 16px; padding: 14px 16px; border-radius: var(--radius); background: var(--code-bg); color: var(--code-text); overflow-x: auto; }
+.markdown-body pre code { padding: 0; border: 0; background: none; color: inherit; font-size: 12.5px; line-height: 1.65; }
+.markdown-body ul, .markdown-body ol { margin: 0 0 14px; padding-left: 26px; }
+.markdown-body li { margin: 4px 0; }
+.markdown-body li > ul, .markdown-body li > ol { margin: 6px 0 0; }
+.markdown-body blockquote { margin: 0 0 16px; padding: 2px 16px; border-left: 3px solid var(--accent-line); color: var(--text-muted); }
+.markdown-body blockquote p { margin: 8px 0; }
+.markdown-body hr { margin: 22px 0; border: 0; border-top: 1px solid var(--line); }
+.markdown-body img { max-width: 100%; height: auto; border-radius: var(--radius-sm); }
+.markdown-body table { display: block; width: max-content; max-width: 100%; margin: 0 0 16px; border-collapse: collapse; overflow-x: auto; }
+.markdown-body th, .markdown-body td { padding: 7px 12px; border: 1px solid var(--line); }
+.markdown-body th { background: var(--bg-soft); font-weight: 600; }
+.markdown-body input[type=checkbox] { margin-right: 6px; vertical-align: middle; }
+
+/* README và danh sách tệp trên trang tổng quan repo. */
+.repo-readme-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.repo-readme-head h2 { display: inline-flex; align-items: center; gap: 8px; }
+.repo-readme-head .pill { font-weight: 500; }
+.repo-file-preview { margin-top: 18px; }
+.repo-file-preview h2 { display: flex; align-items: center; gap: 8px; }
+.repo-file-preview .file-list { margin-top: 12px; }
+.file-empty { margin: 0; padding: 18px 0; color: var(--text-muted); font-size: 14px; }
+@media (max-width: 640px) {
+  .file-panel-head, .code-head { flex-wrap: wrap; }
+  .markdown-body { padding: 18px; }
+}
+
+.notice-action { margin-top: 14px; }
+.push-right { margin-left: auto; }
+
+/* Khung xem ảnh. */
+.image-panel { display: grid; gap: 10px; justify-items: center; padding: 20px; }
+.blob-image { max-width: 100%; height: auto; border-radius: var(--radius-sm); background: var(--bg-soft); }
+.image-note { margin: 0; font-size: 12px; }
