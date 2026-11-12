@@ -73,6 +73,8 @@ main.go                      khởi động server, log request, graceful shutdo
 internal/repostore           tạo/list/xoá bare repo, validate tên, chỉnh HEAD
 internal/gitbackend          CGI bridge sang git http-backend
 internal/repoinfo            đọc nhánh, tag, commit qua git CLI
+internal/repofiles           đọc cây tệp và blob từ bare repo
+internal/markdown            render Markdown an toàn, không dependency
 internal/metastore           metadata repo trong file JSON
 internal/web                 route HTML + template nhúng
 ```
@@ -80,6 +82,17 @@ internal/web                 route HTML + template nhúng
 Request `/<repo>.git/*` được chuyển thẳng cho `git http-backend` qua CGI. Các route còn lại do tầng web xử lý.
 
 Sau mỗi lần push, server tự trỏ `HEAD` về nhánh duy nhất nếu `HEAD` đang trỏ nhánh chưa tồn tại — nhờ vậy repo chỉ có `master` (hoặc tên khác) vẫn clone ra đầy đủ.
+
+## Duyệt tệp
+
+| Route | Nội dung |
+|---|---|
+| `GET /repo/{name}` | Tổng quan, danh sách tệp gốc và README đã render |
+| `GET /repo/{name}/tree/{path}` | Danh sách tệp trong thư mục |
+| `GET /repo/{name}/blob/{path}` | Nội dung tệp: Markdown, code có số dòng, hoặc khung xem ảnh |
+| `GET /repo/{name}/raw/{path}` | Nội dung thô để tải hoặc nhúng, không giới hạn kích thước |
+
+Mọi route nhận thêm `?ref=<nhánh-hoặc-tag>`, mặc định dùng nhánh mặc định. Tệp lớn hơn 1 MB không xem trước được nhưng vẫn tải được qua `/raw/`. Link và ảnh tương đối trong Markdown được đổi sang route nội bộ tương ứng.
 
 ## Kiểm thử
 
